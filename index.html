@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat</title>
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+<body>
+
+<div id="chat-container">
+
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen">
+        <h2>Bem-vindo ao Chat</h2>
+        <p>Digite seu nome:</p>
+        <input type="text" id="nome" placeholder="Seu nome">
+        <br><br>
+        <button id="btn-entrar">Entrar</button>
+    </div>
+
+    <!-- TELA DO CHAT -->
+    <div id="chat-screen" style="display:none; flex: 1; flex-direction: column;">
+        <ul id="mensagens"></ul>
+
+        <form id="formulario">
+            <input id="mensagemInput" autocomplete="off" placeholder="Digite sua mensagem" />
+            <button type="submit" id="enviarBnt">Enviar</button>
+        </form>
+    </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+
+    const socket = io();
+
+    // ------------------------
+    // LOGIN
+    // ------------------------
+    const btnEntrar = document.getElementById("btn-entrar");
+    const nomeInput = document.getElementById("nome");
+    const loginScreen = document.getElementById("login-screen");
+    const chatScreen  = document.getElementById("chat-screen");
+
+    let nomeUsuario = "";
+
+    btnEntrar.addEventListener("click", () => {
+        const nomeDigitado = nomeInput.value.trim();
+        if (!nomeDigitado) {
+            alert("Digite um nome para entrar");
+            return;
+        }
+
+        nomeUsuario = nomeDigitado;
+
+        // 🔹 Avisar o servidor que um novo usuário entrou
+        socket.emit("novo usuario", nomeUsuario);
+
+        loginScreen.style.display = "none";
+        chatScreen.style.display = "flex";
+    });
+
+
+    // ------------------------
+    // CHAT
+    // ------------------------
+    const form = document.getElementById('formulario');
+    const input = document.getElementById('mensagemInput');
+    const mensagens = document.getElementById('mensagens');
+
+    form.addEventListener('submit', event => {
+        event.preventDefault();
+        const mensagem = input.value.trim();
+        if (!mensagem) return;
+
+        socket.emit('chat message', {
+            nome: nomeUsuario,
+            mensagem: mensagem
+        });
+
+        input.value = '';
+    });
+
+    socket.on('chat message', dados => {
+        const li = document.createElement('li');
+        li.textContent = `${dados.nome}: ${dados.mensagem}`;
+        mensagens.appendChild(li);
+
+        mensagens.scrollTop = mensagens.scrollHeight;
+    });
+
+    // 🔹 Receber notificação de novo usuário
+    socket.on("usuario entrou", (nome) => {
+        const div = document.createElement("div");
+        div.classList.add("notificacao");
+        div.innerText = `${nome} entrou no chat`;
+        mensagens.appendChild(div);
+        mensagens.scrollTop = mensagens.scrollHeight;
+    });
+
+</script>
+
+
+  
+
+</body>
+</html>
